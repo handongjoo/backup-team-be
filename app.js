@@ -120,12 +120,10 @@ app.post('/article/:id', jwtVerify, async (req,res) => {
         console.log(user_id)
 
         const article = Articles.find(article => article.id === Number(id))
-
-        let text = article.contents
-
+        
         console.log(article.user_id)
         if (article && article.user_id === user_id) {
-            return (text = contents)
+            return 
         }
         return res.status(400).json({Message : "작성자만 수정할 수 있습니다."})
     }
