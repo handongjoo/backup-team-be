@@ -72,7 +72,7 @@ app.post('/article', jwtVerify, async (req,res) => {
     try{
         const user = req.cookies.user;
         const decoded = jwt.decode(user, jwtConfig.secretKey);
-        const user_id = decoded.userId
+        const user_id = decoded.userId // 로그인 한 user의 id값
         const {id , title, contents, created_at, count} = req.body;
 
         const existArticle = Articles.find(article => article.id === id)
@@ -116,14 +116,14 @@ app.post('/article/:id', jwtVerify, async (req,res) => {
         
         const user = req.cookies.user;
         const decoded = jwt.decode(user, jwtConfig.secretKey);
-        const user_id = decoded.userId
-        console.log(user_id)
-
+        const user_id = decoded.userId // 로그인 한 user의 id값
+        // article의 id 값과 parameter로 준 id 값이 같은지 확인 
         const article = Articles.find(article => article.id === Number(id))
-
-        console.log(article.user_id)
+        // 위의 article이 true이고 그 article의 user_id가 로그인 한 user의 id값과 같다면
         if (article && article.user_id === user_id) {
-            return 
+            return delete article.contents, //article의 contents요소를 제거하고
+            article.contents = contents, // article의 새로운 contents요소에 body 데이터로 준 contents 값을 넣는다
+            res.status(201).json({Message: "수정완료"})
         }
         return res.status(400).json({Message : "작성자만 수정할 수 있습니다."})
     }
