@@ -93,13 +93,13 @@ app.post('/article', jwtVerify, async (req,res) => {
 app.get('/article/:id', (req,res) => {
     try{
         const {id} = req.params;
-        // const article = Articles.map()
-        const articles = Articles.find(article => article.id === Number(id))
-        // console.log(article)
-        if (!articles) {
+
+        const article = Articles.find(article => article.id === Number(id))
+
+        if (!article) {
             return res.status(400).json({message: "존재하지 않는 게시글 입니다."});
         };
-        return res.status(200).json({articles});
+        return res.status(200).json({article});
     }
 
     catch(error) {
@@ -108,7 +108,7 @@ app.get('/article/:id', (req,res) => {
     }
 });
 
-//게시글 수정
+//게시글 수정 (해결해야함)
 app.post('/article/:id', jwtVerify, async (req,res) => {
     try{
         const {id} = req.params;
@@ -120,7 +120,7 @@ app.post('/article/:id', jwtVerify, async (req,res) => {
         console.log(user_id)
 
         const article = Articles.find(article => article.id === Number(id))
-        
+
         console.log(article.user_id)
         if (article && article.user_id === user_id) {
             return 
@@ -134,15 +134,13 @@ app.post('/article/:id', jwtVerify, async (req,res) => {
 });
 
 //프로필 + 내가 작성한 글 조회
-app.get('/profile/:id', async (req, res) => {
+app.get('/profile', async (req, res) => {
     try{
-        const checkid = req.cookies.user;
-        if (!checkid) {
-            return res.status(404).json({message: "로그인이 필요한 페이지입니다."});
-        }
-        const {id} = req.params;
-        // article의 user_id와 params로 준 id 값이 같은 article만 가져와라
-        const userArticles = Articles.filter(article => article.user_id === Number(id))
+        const user = req.cookies.user;
+        const decoded = jwt.decode(user, jwtConfig.secretKey);
+        const user_id = decoded.userId
+        // article의 user_id와 user DB의 id값이 같은 article을 모두 가져와라
+        const userArticles = Articles.filter(article => article.user_id === user_id)
 
         if (userArticles) {
             res.status(200).json({userArticles})
