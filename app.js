@@ -32,7 +32,6 @@ app.use(express.urlencoded({extended:true}))
         };
         const token = jwt.sign({userId : existUsers.id}, jwtConfig.secretKey, jwtConfig.options);
         return res.cookie("user",token),
-
         res.status(200).json({success: true})
     }
     catch(error) {
@@ -59,7 +58,11 @@ app.get('/home', (req,res) => {
     // console.log(Articles)
     try{
         const articles = Articles.map(article => {return article});
-        res.status(200).send(articles.splice(0, 10))
+
+        if(!req.cookies.user) {
+            return res.status(400).json({message: "로그인 후 이용 가능합니다."})
+        }
+        return res.status(200).send(articles.splice(0, 10))
         // if (!articles) {
         //     res.send("게시글이 없습니다.")
         // }
