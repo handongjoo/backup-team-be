@@ -8,7 +8,7 @@ const jwtConfig = require('./jwt_config');
 const jwtVerify = require('./jwt_verify');
 
 const corsOptions = {
-    origin: 'http://localhost:9000',
+    origin: true,
     credentials: true
 };
 
@@ -59,9 +59,9 @@ app.get('/home', (req,res) => {
     try{
         const articles = Articles.map(article => {return article});
         res.status(200).send(articles.splice(0, 10))
-        if (!articles) {
-            res.send("게시글이 없습니다.")
-        }
+        // if (!articles) {
+        //     res.send("게시글이 없습니다.")
+        // }
     } 
     catch(error) {
         console.error(error);
