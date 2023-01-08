@@ -7,10 +7,15 @@ const Articles = require('./db/articles');
 const jwtConfig = require('./jwt_config');
 const jwtVerify = require('./jwt_verify');
 
+const corsOptions = {
+    origin: 'http://localhost:9000',
+    credentials: true
+};
+
 const app = express();
 const port = 3000;
 
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
 
@@ -27,7 +32,7 @@ app.post('/login', (req, res) => {
         const token = jwt.sign({userId : existUsers.id}, jwtConfig.secretKey, jwtConfig.options);
         return res.cookie("user",token),
 
-        res.status(200).json({message: "로그인에 성공했습니다."});
+        res.status(200).json({existUsers})
     }
     catch(error) {
         console.error(error);
@@ -36,14 +41,12 @@ app.post('/login', (req, res) => {
 });
 
 // 유저 정보 확인
-app.get('/users', (req, res) => {
+app.get('/users', jwtVerify, (req, res) => {
     try{
-        const user = req.cookies.user;
-        const token = jwt.verify(user, jwtConfig.secretKey);
-        const data = jwt.decode(user, jwtConfig.secretKey);
-
+        const {user} = req.cookies;
+        const token = jwt.verify(user, jwtConfig.secretKey)
         if (token) {
-            return res.send({data})
+            return res.send(token)
         }
     } catch {
         res.send("로그인 후 사용 가능합니다.")
@@ -68,7 +71,7 @@ app.get('/home', (req,res) => {
 
 
 // 게시글 작성
-app.post('/article', jwtVerify, async (req,res) => {
+app.post('/article', jwtVerify, (req,res) => {
     try{
         const user = req.cookies.user;
         const decoded = jwt.decode(user, jwtConfig.secretKey);
@@ -108,8 +111,8 @@ app.get('/article/:id', (req,res) => {
     }
 });
 
-//게시글 수정 (해결해야함)
-app.post('/article/:id', jwtVerify, async (req,res) => {
+//게시글 수정
+app.post('/article/:id', jwtVerify, (req,res) => {
     try{
         const {id} = req.params;
         const {contents} = req.body;
@@ -120,12 +123,11 @@ app.post('/article/:id', jwtVerify, async (req,res) => {
         // article의 id 값과 parameter로 준 id 값이 같은지 확인 
         const article = Articles.find(article => article.id === Number(id))
         // 위의 article이 true이고 그 article의 user_id가 로그인 한 user의 id값과 같다면
-        if (article && article.user_id === user_id) {
-            return delete article.contents, //article의 contents요소를 제거하고
-            article.contents = contents, // article의 새로운 contents요소에 body 데이터로 준 contents 값을 넣는다
-            res.status(201).json({Message: "수정완료"})
+        if (!article || article.user_id !== user_id) {
+            return res.status(400).json({Message : "작성자만 수정할 수 있습니다."})
         }
-        return res.status(400).json({Message : "작성자만 수정할 수 있습니다."})
+        return article.contents = contents, // article의 새로운 contents요소에 body 데이터로 준 contents 값을 넣는다
+        res.status(201).json({Message: "수정완료"})
     }
     catch(error) {
         console.error(error);
@@ -134,7 +136,7 @@ app.post('/article/:id', jwtVerify, async (req,res) => {
 });
 
 //프로필 + 내가 작성한 글 조회
-app.get('/profile', async (req, res) => {
+app.get('/profile', (req, res) => {
     try{
         const user = req.cookies.user;
         const decoded = jwt.decode(user, jwtConfig.secretKey);
@@ -143,7 +145,7 @@ app.get('/profile', async (req, res) => {
         const userArticles = Articles.filter(article => article.user_id === user_id)
 
         if (userArticles) {
-            res.status(200).json({userArticles})
+            res.status(200).json({decoded, userArticles})
         }
     }
     catch(error) {

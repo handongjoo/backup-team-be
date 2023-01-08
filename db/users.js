@@ -2,8 +2,8 @@ module.exports = [
     {
         "id": 1,
         "name": "Wanda Embery",
-        "email": "wembery0@aboutads.info",
-        "password": "qqpk5d8iY",
+        "email": "123",
+        "password": "123",
         "created_at": "2022-12-15T23:12:45Z",
     },
     {

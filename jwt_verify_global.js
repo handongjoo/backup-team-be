@@ -10,8 +10,14 @@ module.exports = (req,res,next) => {
     try{
         const {user} = req.cookies;
         const token = jwt.verify(user, jwtConfig.secretKey)
+        // console.log(user)
+        // console.log(token)
         if (token) {
-            return next();
+            // console.log(token)
+            req.user = {
+                userId : token.userId
+            }
+            return next()
         }
     } catch(error) {
         console.error(error);
