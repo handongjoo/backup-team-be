@@ -18,21 +18,22 @@ const port = 3000;
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
+app.use(express.urlencoded({extended:true}))
 
-// 로그인 페이지
-app.post('/login', (req, res) => {
+    // 로그인 페이지
+    app.post('/login', (req, res) => {
     try{
         const {email, password} = req.body;
 
         const existUsers = Users.find(user => user.email === email && user.password === password);
 
         if (!existUsers) {
-            return res.status(400).json({message: "이메일 혹은 비밀번호가 틀렸습니다."})
+            return res.status(400).json({success: false, msg:"이메일 혹은 비밀번호가 틀렸습니다."})
         };
         const token = jwt.sign({userId : existUsers.id}, jwtConfig.secretKey, jwtConfig.options);
         return res.cookie("user",token),
 
-        res.status(200).json({existUsers})
+        res.status(200).json({success: true})
     }
     catch(error) {
         console.error(error);
