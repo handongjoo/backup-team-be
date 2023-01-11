@@ -134,7 +134,7 @@ app.post('/article/:id', jwtVerify, (req,res) => {
             return
         }
         article.contents = contents // article의 새로운 contents요소에 body 데이터로 준 contents 값을 넣는다
-        return res.status(201).json({Message: "수정완료"}),
+        return res.status(201).json({Message: "수정완료"})
     }
     catch(error) {
         console.error(error);
