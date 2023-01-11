@@ -2,7 +2,6 @@
 
 const jwt = require('jsonwebtoken')
 const cookieParser = require('cookie-parser')
-const Users = require('./db/users')
 const jwtConfig = require('./jwt_config')
 cookieParser();
 
