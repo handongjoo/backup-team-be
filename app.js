@@ -21,7 +21,7 @@ app.use(express.json());
 app.use(express.urlencoded({extended:true}))
 
     // 로그인 페이지
-    app.post('/login', (req, res) => {
+app.post('/login', (req, res) => {
     try{
         const {email, password} = req.body;
 
@@ -55,17 +55,18 @@ app.get('/users', jwtVerify, (req, res) => {
 
 // 홈페이지 + 모든 게시글 조회
 app.get('/home', (req,res) => { 
-    // console.log(Articles)
     try{
         const articles = Articles.map(article => {return article});
 
-        if(!req.cookies.user) {
-            return res.status(400).json({message: "로그인 후 이용 가능합니다."})
-        }
-        return res.status(200).send(articles.splice(0, 10))
+        // if(!res.cookie.user) {
+        //     res.status(400).json({message: "로그인 후 이용 가능합니다."})
+        //     return 
+        // }
         // if (!articles) {
         //     res.send("게시글이 없습니다.")
+        //     return 
         // }
+        res.status(200).send(articles.splice(0, 10))
     } 
     catch(error) {
         console.error(error);
@@ -126,12 +127,14 @@ app.post('/article/:id', jwtVerify, (req,res) => {
         const user_id = decoded.userId // 로그인 한 user의 id값
         // article의 id 값과 parameter로 준 id 값이 같은지 확인 
         const article = Articles.find(article => article.id === Number(id))
+        
         // 위의 article이 true이고 그 article의 user_id가 로그인 한 user의 id값과 같다면
         if (!article || article.user_id !== user_id) {
-            return res.status(400).json({Message : "작성자만 수정할 수 있습니다."})
+            res.status(400).json({Message : "작성자만 수정할 수 있습니다."})
+            return
         }
-        return article.contents = contents, // article의 새로운 contents요소에 body 데이터로 준 contents 값을 넣는다
-        res.status(201).json({Message: "수정완료"})
+        article.contents = contents // article의 새로운 contents요소에 body 데이터로 준 contents 값을 넣는다
+        return res.status(201).json({Message: "수정완료"}),
     }
     catch(error) {
         console.error(error);
@@ -139,8 +142,32 @@ app.post('/article/:id', jwtVerify, (req,res) => {
     }
 });
 
+// 게시글 삭제
+app.delete('/article/:id', jwtVerify, (req, res) => {
+    const {id} = req.params;
+
+    const user = req.cookies.user;
+    const decoded = jwt.decode(user, jwtConfig.secretKey);
+    const user_id = decoded.userId
+
+    const article = Articles.find(article => article.id === Number(id))
+    const articleIndex = Articles.findIndex(article => article.id === Number(id))
+    
+
+    if (!article) {
+        res.json({message : "게시글이 존재하지 않습니다."})
+        return
+    }
+    if (article.user_id !== user_id) {
+        res.json({message : "삭제 권한이 없습니다."})
+        return
+    }
+    Articles.splice(articleIndex, 1)
+    return res.json({message: "삭제가 완료되었습니다."})
+})
+
 //프로필 + 내가 작성한 글 조회
-app.get('/profile', (req, res) => {
+app.get('/profile/:id', (req, res) => {
     try{
         const user = req.cookies.user;
         const decoded = jwt.decode(user, jwtConfig.secretKey);
