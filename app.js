@@ -2,8 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
-const Users = require('./db/users');
-const Articles = require('./db/articles');
+const mysql = require("mysql");
 const jwtConfig = require('./jwt_config');
 const jwtVerify = require('./jwt_verify');
 
@@ -20,17 +19,30 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({extended:true}))
 
+const connection = mysql.createConnection({
+    host: "caredog-test.c0o6spnernvu.ap-northeast-2.rds.amazonaws.com",
+    user: "sparta",
+    password: "tmvkfmxk2022",
+    database: "sparta_backup"
+})
+
+connection.connect();
+// connection.query("select * from articles", (error, rows, fields) => {
+//     console.log(rows)
+// })
+
     // 로그인 페이지
 app.post('/login', (req, res) => {
     try{
         const {email, password} = req.body;
 
-        const existUsers = Users.find(user => user.email === email && user.password === password);
+        const existUser = connection.query(`select * from users where email = ${email} and password = ${password}`)
+        // const existUsers = Users.find(user => user.email === email && user.password === password);
 
-        if (!existUsers) {
+        if (!existUser) {
             return res.status(400).json({success: false, msg:"이메일 혹은 비밀번호가 틀렸습니다."})
         };
-        const token = jwt.sign({userId : existUsers.id}, jwtConfig.secretKey, jwtConfig.options);
+        const token = jwt.sign({userId : existUser.id}, jwtConfig.secretKey, jwtConfig.options);
         return res.cookie("user",token),
         res.status(200).json({success: true})
     }
@@ -54,9 +66,15 @@ app.get('/users', jwtVerify, (req, res) => {
 });
 
 // 홈페이지 + 모든 게시글 조회
-app.get('/home', (req,res) => { 
+app.get('/home/:page', (req,res) => { 
     try{
-        const articles = Articles.map(article => {return article});
+        const {page} = req.params;
+        const perPage = 20
+        const startIndex = ((page || 1) - 1) * perPage
+        connection.query(`select * from articles order by id desc limit ${perPage} OFFSET ${startIndex}`, (error, rows, fields) => {
+            res.send(rows)
+        })
+        // const articles = Articles.map(article => {return article});
 
         // if(!res.cookie.user) {
         //     res.status(400).json({message: "로그인 후 이용 가능합니다."})
@@ -66,7 +84,7 @@ app.get('/home', (req,res) => {
         //     res.send("게시글이 없습니다.")
         //     return 
         // }
-        res.status(200).send(articles.splice(0, 10))
+        // res.status(200).send(articles.splice(0, 10))
     } 
     catch(error) {
         console.error(error);
@@ -100,9 +118,11 @@ app.post('/article', jwtVerify, (req,res) => {
 // 게시글 상세 조회
 app.get('/article/:id', (req,res) => {
     try{
-        const {id} = req.params;
-
-        const article = Articles.find(article => article.id === Number(id))
+        const id = req.params.id;
+        const article = connection.query(`select * from articles where id = ${id}`, (error, rows, fields) => {
+            res.send(rows)
+        })
+        // const article = Articles.find(article => article.id === Number(id))
 
         if (!article) {
             return res.status(400).json({message: "존재하지 않는 게시글 입니다."});
