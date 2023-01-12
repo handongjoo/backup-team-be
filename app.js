@@ -27,24 +27,29 @@ const connection = mysql.createConnection({
 })
 
 connection.connect();
-// connection.query("select * from articles", (error, rows, fields) => {
-//     console.log(rows)
-// })
 
     // 로그인 페이지
 app.post('/login', (req, res) => {
     try{
-        const {email, password} = req.body;
+        const {name, password} = req.body;
+        const query = "SELECT * FROM users WHERE name = ? AND password = ?"
 
-        const existUser = connection.query(`select * from users where email = ${email} and password = ${password}`)
-        // const existUsers = Users.find(user => user.email === email && user.password === password);
+        connection.query(query, [name, password] ,(error, results) => {
+        if (error) {
+            console.log(error);
+            return res.status(500).send({error: error.message});
+        }
+        if (!results.length) {
+            res.status(400).json({message: "이름이나 비밀번호가 틀렸습니다."})
+            return
+            
+        } else {
+            const token = jwt.sign({userId : results.name}, jwtConfig.secretKey, jwtConfig.options);
+            return res.cookie("user",token),
+            res.status(200).json({message: "로그인 성공"})
+            }
+        });
 
-        if (!existUser) {
-            return res.status(400).json({success: false, msg:"이메일 혹은 비밀번호가 틀렸습니다."})
-        };
-        const token = jwt.sign({userId : existUser.id}, jwtConfig.secretKey, jwtConfig.options);
-        return res.cookie("user",token),
-        res.status(200).json({success: true})
     }
     catch(error) {
         console.error(error);
@@ -74,17 +79,6 @@ app.get('/home/:page', (req,res) => {
         connection.query(`select * from articles order by id desc limit ${perPage} OFFSET ${startIndex}`, (error, rows, fields) => {
             res.send(rows)
         })
-        // const articles = Articles.map(article => {return article});
-
-        // if(!res.cookie.user) {
-        //     res.status(400).json({message: "로그인 후 이용 가능합니다."})
-        //     return 
-        // }
-        // if (!articles) {
-        //     res.send("게시글이 없습니다.")
-        //     return 
-        // }
-        // res.status(200).send(articles.splice(0, 10))
     } 
     catch(error) {
         console.error(error);
@@ -93,25 +87,30 @@ app.get('/home/:page', (req,res) => {
 });
 
 
-// 게시글 작성
+// 게시글 작성 (user_id를 받는 인증 미들웨어 수정 필요, user_id를 직접 넣어주면 가능하긴 함)
 app.post('/article', jwtVerify, (req,res) => {
     try{
         const user = req.cookies.user;
         const decoded = jwt.decode(user, jwtConfig.secretKey);
         const user_id = decoded.userId // 로그인 한 user의 id값
-        const {id , title, contents, created_at, count} = req.body;
-
-        const existArticle = Articles.find(article => article.id === id)
-        if (existArticle) {
-            return res.status(400).json({message : "이미 존재하는 게시글 입니다."});
-        }
-        return Articles.push({id , title, contents, user_id, created_at, count}),
-        res.status(200).json({message: "게시글 작성 완료"})
+        const {title, contents} = req.body;
+        const query = "INSERT INTO articles (title, contents, user_id) values (?,?,?)"
+        connection.query(query, [title, contents, user_id] ,(error, results) => {
+            if (error) {
+                console.log(error);
+                return res.status(500).send({error: error.message});
+            }
+            if (!results.length) {
+                res.status(400).json({message: "모든 항목을 작성해주세요."})
+                return
+            } else {
+                return res.status(200).json({message: "작성완료"})
+                }
+            });
     } 
-
     catch(error) {
         console.error(error);
-        res.status(500).json({errorMessage : error.Message});
+        res.status(500).json({message : error.Message});
     }
 });
 
@@ -119,15 +118,19 @@ app.post('/article', jwtVerify, (req,res) => {
 app.get('/article/:id', (req,res) => {
     try{
         const id = req.params.id;
-        const article = connection.query(`select * from articles where id = ${id}`, (error, rows, fields) => {
-            res.send(rows)
-        })
-        // const article = Articles.find(article => article.id === Number(id))
-
-        if (!article) {
-            return res.status(400).json({message: "존재하지 않는 게시글 입니다."});
-        };
-        return res.status(200).json({article});
+        const query = "SELECT * FROM articles WHERE id = ?"
+        connection.query(query, [id] ,(error, results) => {
+            if (error) {
+                console.log(error);
+                return res.status(500).send({error: error.message});
+            }
+            if (!results.length) {
+                res.status(400).json({message: "없는 게시글 입니다."})
+                return
+            } else {
+                return res.status(200).send(results)
+                }
+            });
     }
 
     catch(error) {
