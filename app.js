@@ -28,6 +28,55 @@ const connection = mysql.createConnection({
 
 connection.connect();
 
+// 홈페이지 + 모든 게시글 조회
+app.get('/home', (req,res) => { 
+    try{
+        const {page} = req.query;
+        const perPage = 20
+        const startIndex = ((page || 1) - 1) * perPage
+        const currentPage = page || 1
+        connection.query('select count(*) as count from articles', (error, rows, fields) => {
+            if (error) {
+                console.log(error);
+                return res.status(500).send({error: error.message})
+            }
+            const totalCount = rows[0].count
+            const lastPage = Math.ceil(totalCount / perPage)
+            connection.query(`select * from articles order by id desc limit ${perPage} OFFSET ${startIndex}`, (error, rows, fields) => {
+                const result = {
+                    rows,
+                    totalCount,
+                    lastPage,
+                    currentPage
+                }
+                res.send(result)
+            })
+        })
+        
+    } 
+    catch(error) {
+        console.error(error);
+        res.status(500).json({errorMessage : error.Message});
+    } 
+});
+
+app.get("/users", async (req, res) => {
+    const page = req.query.page || 1;
+    const limit = 10;
+    const offset = (page - 1) * limit;
+  
+    const [results, fields] = await connection.query(
+      "SELECT * FROM users LIMIT ? OFFSET ?",
+      [limit, offset]
+    );
+  
+    const totalCount = await connection.query("SELECT COUNT(*) as cnt FROM users");
+  
+    const pageCount = Math.ceil(totalCount[0].cnt / limit);
+  
+    res.render("users", { users: results, pageCount: pageCount, currentPage: page });
+  });
+
     // 로그인 페이지
 app.post('/login', (req, res) => {
     try{
@@ -70,28 +119,13 @@ app.get('/users', jwtVerify, (req, res) => {
     }
 });
 
-// 홈페이지 + 모든 게시글 조회
-app.get('/home/:page', (req,res) => { 
-    try{
-        const {page} = req.params;
-        const perPage = 20
-        const startIndex = ((page || 1) - 1) * perPage
-        connection.query(`select * from articles order by id desc limit ${perPage} OFFSET ${startIndex}`, (error, rows, fields) => {
-            res.send(rows)
-        })
-    } 
-    catch(error) {
-        console.error(error);
-        res.status(500).json({errorMessage : error.Message});
-    } 
-});
-
-
 // 게시글 작성 (user_id를 받는 인증 미들웨어 수정 필요, user_id를 직접 넣어주면 가능하긴 함)
-app.post('/article', jwtVerify, (req,res) => {
+app.post('/articles', jwtVerify, (req,res) => {
     try{
         const user = req.cookies.user;
+        console.log(user)
         const decoded = jwt.decode(user, jwtConfig.secretKey);
+        console.log(decoded)
         const user_id = decoded.userId // 로그인 한 user의 id값
         const {title, contents} = req.body;
         const query = "INSERT INTO articles (title, contents, user_id) values (?,?,?)"
@@ -115,7 +149,7 @@ app.post('/article', jwtVerify, (req,res) => {
 });
 
 // 게시글 상세 조회
-app.get('/article/:id', (req,res) => {
+app.get('/articles/:id', (req,res) => {
     try{
         const id = req.params.id;
         const query = "SELECT * FROM articles WHERE id = ?"
@@ -140,7 +174,7 @@ app.get('/article/:id', (req,res) => {
 });
 
 //게시글 수정
-app.post('/article/:id', jwtVerify, (req,res) => {
+app.post('/articles/:id', jwtVerify, (req,res) => {
     try{
         const {id} = req.params;
         const {contents} = req.body;
@@ -148,16 +182,23 @@ app.post('/article/:id', jwtVerify, (req,res) => {
         const user = req.cookies.user;
         const decoded = jwt.decode(user, jwtConfig.secretKey);
         const user_id = decoded.userId // 로그인 한 user의 id값
-        // article의 id 값과 parameter로 준 id 값이 같은지 확인 
-        const article = Articles.find(article => article.id === Number(id))
+
+        const query = "SELECT * FROM articles WHERE id = ?"
+        connection.query(query, [id] ,(error, results) => {
+            if (error) {
+                console.log(error);
+                return res.status(500).send({error: error.message});
+            }
+            if (!results.length) {
+                res.status(400).json({message: "없는 게시글 입니다."})
+                return
+            } else {
+                results.contents = contents
+                return res.status(201).json({Message: "수정완료"})
+                }
+            })
+    
         
-        // 위의 article이 true이고 그 article의 user_id가 로그인 한 user의 id값과 같다면
-        if (!article || article.user_id !== user_id) {
-            res.status(400).json({Message : "작성자만 수정할 수 있습니다."})
-            return
-        }
-        article.contents = contents // article의 새로운 contents요소에 body 데이터로 준 contents 값을 넣는다
-        return res.status(201).json({Message: "수정완료"})
     }
     catch(error) {
         console.error(error);
@@ -166,14 +207,27 @@ app.post('/article/:id', jwtVerify, (req,res) => {
 });
 
 // 게시글 삭제
-app.delete('/article/:id', jwtVerify, (req, res) => {
+app.delete('/articles/:id', jwtVerify, (req, res) => {
     const {id} = req.params;
 
     const user = req.cookies.user;
     const decoded = jwt.decode(user, jwtConfig.secretKey);
     const user_id = decoded.userId
 
-    const article = Articles.find(article => article.id === Number(id))
+    const query = "SELECT * FROM articles WHERE id = ?"
+    connection.query(query, [id] ,(error, results) => {
+        if (error) {
+            console.log(error);
+            return res.status(500).send({error: error.message});
+        }
+        if (!results.length) {
+            res.status(400).json({message: "없는 게시글 입니다."})
+            return
+        } else {
+            return res.status(201).json({results})
+            }
+        })
+
     const articleIndex = Articles.findIndex(article => article.id === Number(id))
     
 
