@@ -1,5 +1,3 @@
-//jwt 생성값
-
 module.exports = {
     secretKey : 'mykey', //  암호화 키
     options : {

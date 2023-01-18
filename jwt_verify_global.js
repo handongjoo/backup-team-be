@@ -1,5 +1,3 @@
-// //쿠키로 받는 미들웨어 만들다가 실패..
-
 // const jwt = require('jsonwebtoken')
 // const cookieParser = require('cookie-parser')
 // const Users = require('./db/users')

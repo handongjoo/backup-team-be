@@ -2,9 +2,11 @@ const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
-const mysql = require("mysql");
-const jwtConfig = require('./jwt_config');
+const jwtConfig = require('./src/config/configuration');
 const jwtVerify = require('./jwt_verify');
+const mysql = require('mysql2')
+// const conn = require('./src/repository/conn')
+const {getUserByEmailAndPassword, getArticles} = require('./src/repository/db')
 
 const corsOptions = {
     origin: true,
@@ -19,58 +21,46 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({extended:true}))
 
-const connection = mysql.createConnection({
-    host: "caredog-test.c0o6spnernvu.ap-northeast-2.rds.amazonaws.com",
-    user: "sparta",
-    password: "tmvkfmxk2022",
-    database: "sparta_backup"
-})
+// const connection = mysql.createConnection({
+//     host: "caredog-test.c0o6spnernvu.ap-northeast-2.rds.amazonaws.com",
+//     user: "sparta",
+//     password: "tmvkfmxk2022",
+//     database: "sparta_backup"
+// })
 
-connection.connect();
+// connection.execute('SELECT * FROM users', (err, results) => {
+//     if (err) throw err;
+//     console.log(results);
+//   });
 
 // 홈페이지 + 모든 게시글 조회
 app.get('/home', (req,res) => { 
+    const {page} = req.query;
+    const perPage = 20
+    const startIndex = ((page || 1) - 1) * perPage
+    const currentPage = page || 1
     try{
-        const {page} = req.query;
-        const perPage = 20
-        const startIndex = ((page || 1) - 1) * perPage
-        const currentPage = page || 1
-        connection.query('select count(*) as count from articles', (error, rows, fields) => {
-            if (error) {
-                console.log(error);
-                return res.status(500).send({error: error.message})
-            }
-            const totalCount = rows[0].count
-            const lastPage = Math.ceil(totalCount / perPage)
-            connection.query(`select * from articles order by id desc limit ${perPage} OFFSET ${startIndex}`, (error, rows, fields) => {
-                const result = {
-                    rows,
-                    totalCount,
-                    lastPage,
-                    currentPage
-                }
-                res.send(result)
-            })
-        })
-        
-    } 
-    catch(error) {
+        const pageInfo = getArticles(currentPage, perPage, startIndex)
+
+        res.send(pageInfo) 
+    } catch(error) {
         console.error(error);
         res.status(500).json({errorMessage : error.Message});
     } 
+
 });
 
-app.get("/users", async (req, res) => {
+app.get("/users", (req, res) => {
     const page = req.query.page || 1;
     const limit = 10;
     const offset = (page - 1) * limit;
   
-    const [results, fields] = await connection.query(
+    const [results, fields] = connection.query(
       "SELECT * FROM users LIMIT ? OFFSET ?",
       [limit, offset]
     );
   
-    const totalCount = await connection.query("SELECT COUNT(*) as cnt FROM users");
+    const totalCount = connection.query("SELECT COUNT(*) as cnt FROM users");
   
     const pageCount = Math.ceil(totalCount[0].cnt / limit);
   
@@ -78,33 +68,23 @@ app.get("/users", async (req, res) => {
   });
 
     // 로그인 페이지
-app.post('/login', (req, res) => {
-    try{
-        const {name, password} = req.body;
-        const query = "SELECT * FROM users WHERE name = ? AND password = ?"
-
-        connection.query(query, [name, password] ,(error, results) => {
-        if (error) {
-            console.log(error);
-            return res.status(500).send({error: error.message});
-        }
-        if (!results.length) {
-            res.status(400).json({message: "이름이나 비밀번호가 틀렸습니다."})
+app.post('/login', async (req, res) => {
+    const {email, password} = req.body;
+    try {
+        const user = await getUserByEmailAndPassword(email, password)
+        if (!user) {
+            res.status(400).send({message: "Not Found"})
             return
-            
-        } else {
-            const token = jwt.sign({userId : results.name}, jwtConfig.secretKey, jwtConfig.options);
-            return res.cookie("user",token),
-            res.status(200).json({message: "로그인 성공"})
-            }
-        });
+        } 
+        const token = jwt.sign({userId : user.email}, jwtConfig.secretKey, jwtConfig.options);
+        return res.cookie("user",token),
+    
+        res.status(200).json({message: "로그인 성공"})
 
+    } catch (error) {
+        res.status(500).send({message: error.message})
     }
-    catch(error) {
-        console.error(error);
-        res.status(500).json({errorMessage : error.Message});
-    }
-});
+})
 
 // 유저 정보 확인
 app.get('/users', jwtVerify, (req, res) => {
