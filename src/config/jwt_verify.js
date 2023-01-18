@@ -9,7 +9,6 @@ module.exports = (req,res,next) => {
             return res.status(400).send({message: "로그인 후 사용 가능한 api"})
         }
         const user = req.cookies.user;
-        console.log(user)
         const token = jwt.verify(user, jwtConfig.secretKey)
         if (token) {
             return next();
