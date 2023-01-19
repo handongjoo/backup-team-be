@@ -10,7 +10,7 @@ const login = async (req, res) => {
             res.status(400).send({message: "Not Found"})
             return
         } 
-        const token = jwt.sign({userId : user.email}, jwtConfig.secretKey, jwtConfig.options);
+        const token = jwt.sign({userId : user.id}, jwtConfig.secretKey, jwtConfig.options);
         return res.cookie("user",token),
     
         res.status(200).json({message: "로그인 성공"})
@@ -18,6 +18,10 @@ const login = async (req, res) => {
     } catch (error) {
         res.status(500).send({message: error.message})
     }
+}
+
+const logout = async (req, res) => {
+    return res.clearCookie('userId').send("로그아웃")
 }
 
 const findUser = async (req,res) => {
@@ -28,7 +32,7 @@ const findUser = async (req,res) => {
                 res.status(400).json({message: "사용자가 없습니다."})
                 return
             }
-            return res.status(200).send(results)
+            return res.status(200).send(user)
         }    
     catch(error) {
         console.error(error);
@@ -49,15 +53,12 @@ const userList = async (req, res) => {
 
 const profileAndMyArticles = async (req, res) => {
     try{
-        const user = req.cookies.user;
-        const decoded = jwt.decode(user, jwtConfig.secretKey);
-        const user_id = decoded.userId
-        // article의 user_id와 user DB의 id값이 같은 article을 모두 가져와라
-        const myArticles = await getMyProfile({id: user_id})
-        // const userArticles = Articles.filter(article => article.user_id === user_id)
+        const {id} = req.params;
 
-        if (myArticles) {
-            res.status(200).json({decoded, myArticles})
+        const myProfile = await getMyProfile(id)
+
+        if (myProfile) {
+            res.status(200).json({myProfile})
         }
     }
     catch(error) {
@@ -66,4 +67,4 @@ const profileAndMyArticles = async (req, res) => {
     }
 }
 
-module.exports = {login, findUser, userList, profileAndMyArticles}
+module.exports = {login, findUser, userList, profileAndMyArticles, logout}

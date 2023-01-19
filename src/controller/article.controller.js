@@ -7,8 +7,8 @@ const homePageArticles = async (req,res) => {
     const perPage = 20
     const startIndex = (page - 1) * perPage
     try{
-        const pageInfo = await getArticles(perPage, startIndex)
-        return res.send({pageInfo})
+        const rows = await getArticles(perPage, startIndex)
+        return res.send({rows, page})
 
     } catch(error) {
         console.error(error);
@@ -22,8 +22,10 @@ const postArticle = async (req,res) => {
         const user = req.cookies.user;
 
         const decoded = jwt.decode(user, jwtConfig.secretKey);
+        console.log(decoded)
+        const user_id = decoded.userId // 로그인 한 user의 id값
 
-        const user_id = Number(decoded.userId) // 로그인 한 user의 id값
+        console.log(user_id)
         const {title, contents} = req.body;
         
         const article = await createArticle(title, contents, user_id)

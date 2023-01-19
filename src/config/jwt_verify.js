@@ -13,6 +13,7 @@ module.exports = (req,res,next) => {
         if (token) {
             return next();
         }
+        
     } catch(error) {
         console.error(error);
         res.status(500).json({Message: "잘못된 접근입니다."});
