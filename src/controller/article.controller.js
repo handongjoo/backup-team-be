@@ -4,10 +4,10 @@ const {getArticle, getArticles, createArticle, updateArticle, deleteArticle} = r
 
 const homePageArticles = async (req,res) => { 
     const page = req.query.page || 1
-    const perPage = 20
-    const startIndex = (page - 1) * perPage
+    const limit = 20
+    const offset = (page - 1) * limit
     try{
-        const rows = await getArticles(perPage, startIndex)
+        const rows = await getArticles(limit, offset)
         return res.send({rows, page})
 
     } catch(error) {
@@ -46,7 +46,7 @@ const detailArticle = async (req,res) => {
                 res.status(400).json({message: "없는 게시글 입니다."})
                 return
             }
-            return res.status(200).send(results)
+            return res.status(200).send(article)
         }    
     catch(error) {
         console.error(error);

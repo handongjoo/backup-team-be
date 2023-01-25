@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const jwtConfig = require('../config/configuration');
-const {getUserByEmailAndPassword, getUser, getMyProfile, getUsers} = require('../repository')
+const {getUserByEmailAndPassword, getUser, getMyProfile, getUsers, getMyArticles} = require('../repository')
 
 const login = async (req, res) => {
     const {email, password} = req.body;
@@ -13,7 +13,7 @@ const login = async (req, res) => {
         const token = jwt.sign({userId : user.id}, jwtConfig.secretKey, jwtConfig.options);
         return res.cookie("user",token),
     
-        res.status(200).json({message: "로그인 성공"})
+        res.status(200).json({success: true})
 
     } catch (error) {
         res.status(500).send({message: error.message})
@@ -55,10 +55,16 @@ const profileAndMyArticles = async (req, res) => {
     try{
         const {id} = req.params;
 
+        const user = req.cookies.user;
+        const decoded = jwt.decode(user, jwtConfig.secretKey);
+        const user_id = decoded.userId
+
         const myProfile = await getMyProfile(id)
+        
+        const myArticles = await getMyArticles(user_id)
 
         if (myProfile) {
-            res.status(200).json({myProfile})
+            res.status(200).json({myProfile, myArticles})
         }
     }
     catch(error) {

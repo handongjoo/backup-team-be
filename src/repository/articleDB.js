@@ -3,14 +3,14 @@ require("./conn").then(mysqlConn => {
     conn = mysqlConn
 })
 
-const {findOneById, findOne} = require('./db')
+const Article = require('../models/article.model')
 
 // 홈페이지 (전체 게시물)
-const getArticles = async (perPage, startIndex) => {
+const getArticles = async (limit, offset) => {
     
-    const [totalCount] = await conn.execute('select count(*) as count from articles')
-    const [articles] = await conn.execute("select * from articles order by id desc limit ? OFFSET ?", [perPage, startIndex])
-    const lastPage = Math.ceil(totalCount[0].count / perPage)
+    const totalCount = await Article.count()
+    const articles = await Article.findAll({order:[["id","desc"]], limit, offset})
+    const lastPage = Math.ceil(totalCount / limit)
 
     return {totalCount, 
     lastPage, 
@@ -20,31 +20,24 @@ const getArticles = async (perPage, startIndex) => {
 
 // 게사물 상세
 const getArticle = async (id) => {
-    return await findOneById("articels", id)
+    return await Article.findByPk(id)
 }
 
 // 게시물 작성(생성)
 const createArticle = async (title, contents, user_id) => {
-    return await conn.execute(
-        "INSERT INTO articles (title, contents, user_id) values (?,?,?)", 
-        [title, contents, user_id]
-        )
+    return await Article.create({title, contents, user_id})
 }
 
 // 게시물 수정
 const updateArticle = async (title, contents, id) => {
-    return await conn.execute(
-        "UPDATE articles SET title = ?, contents = ? WHERE id = ?",
-        [title, contents, id]
-        )
+    return await Article.update({title, contents}, {where: {id}})
 }
 
 // 게시물 삭제
 const deleteArticle = async (id) => {
-    return await conn.execute(
-        "DELETE FROM articles WHERE id = ?",
-        [id]
-    )
+    return await Article.destroy({where: {id}})
 }
+
+
 
 module.exports = {getArticles, getArticle, createArticle, updateArticle, deleteArticle}

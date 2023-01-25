@@ -8,11 +8,8 @@ const Article = require('../models/article.model')
 
 // 유저 목록 조회 (연습용)
 const getUsers = async (limit, offset) => {
-    // const [totalCount] = await conn.execute('select count(*) as count from users')
     const totalCount = await User.count()
-    // const [users] = await conn.execute("select * from users limit ? OFFSET ?", [limit, offset])
     const users = await User.findAll({offset, limit}) 
-
     const pageCount = Math.ceil(totalCount / limit);
 
     return {
@@ -38,4 +35,9 @@ const getMyProfile = async (id) => {
     return await User.findByPk(id)
 }
 
-module.exports = {getUser, getUserByEmailAndPassword, getMyProfile, getUsers}
+// 내가 쓴 게시물
+const getMyArticles = async (user_id) => {
+    return await Article.findAll({where:{user_id}})
+}
+
+module.exports = {getUser, getUserByEmailAndPassword, getMyProfile, getUsers, getMyArticles}

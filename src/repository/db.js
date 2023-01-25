@@ -32,5 +32,6 @@ const findOneById = async (table, value, key) => {
 }
 
 
+//참고용!!
 
-module.exports = {findOne, findOneById, findAll}
+// module.exports = {findOne, findOneById, findAll}
