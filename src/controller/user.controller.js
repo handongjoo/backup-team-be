@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const jwtConfig = require('../config/configuration');
-const {getUserByEmailAndPassword, getUser, getMyProfile, getUsers, getMyArticles} = require('../repository')
+const {getUserByEmailAndPassword, getUser, getMyProfile, getUsers} = require('../repository')
 
 const login = async (req, res) => {
     const {email, password} = req.body;
@@ -55,16 +55,16 @@ const profileAndMyArticles = async (req, res) => {
     try{
         const {id} = req.params;
 
-        const user = req.cookies.user;
-        const decoded = jwt.decode(user, jwtConfig.secretKey);
-        const user_id = decoded.userId
+        // const user = req.cookies.user;
+        // const decoded = jwt.decode(user, jwtConfig.secretKey);
+        // const user_id = decoded.userId
 
         const myProfile = await getMyProfile(id)
         
-        const myArticles = await getMyArticles(user_id)
+        // const myArticles = await getMyArticles(user_id)
 
         if (myProfile) {
-            res.status(200).json({myProfile, myArticles})
+            res.status(200).json({myProfile})
         }
     }
     catch(error) {

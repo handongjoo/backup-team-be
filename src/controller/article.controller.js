@@ -22,7 +22,7 @@ const postArticle = async (req,res) => {
         const user = req.cookies.user;
 
         const decoded = jwt.decode(user, jwtConfig.secretKey);
-        console.log(decoded)
+
         const user_id = decoded.userId // 로그인 한 user의 id값
 
         console.log(user_id)

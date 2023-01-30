@@ -32,12 +32,7 @@ const getUserByEmailAndPassword = async (email, password) => {
 
 // 유저 프로필
 const getMyProfile = async (id) => {
-    return await User.findByPk(id)
+    return await User.findByPk(id,{include:Article, limit: 2})
 }
 
-// 내가 쓴 게시물
-const getMyArticles = async (user_id) => {
-    return await Article.findAll({where:{user_id}})
-}
-
-module.exports = {getUser, getUserByEmailAndPassword, getMyProfile, getUsers, getMyArticles}
+module.exports = {getUser, getUserByEmailAndPassword, getMyProfile, getUsers}

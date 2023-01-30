@@ -4,12 +4,22 @@ require("./conn").then(mysqlConn => {
 })
 
 const Article = require('../models/article.model')
+const User = require('../models/user.model')
 
 // 홈페이지 (전체 게시물)
 const getArticles = async (limit, offset) => {
     
     const totalCount = await Article.count()
-    const articles = await Article.findAll({order:[["id","desc"]], limit, offset})
+    const articles = await Article.findAll({
+        include: [{
+            model : User,
+            attributes: {
+                exclude: ["password"]
+            }
+        }],
+        order:[["id","desc"]], 
+        limit, 
+        offset})
     const lastPage = Math.ceil(totalCount / limit)
 
     return {totalCount, 
