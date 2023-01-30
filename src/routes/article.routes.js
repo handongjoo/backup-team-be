@@ -14,5 +14,8 @@ router.get('/articles/:id', articleController.detailArticle);
 router.post('/articles/:id', jwtVerify, articleController.editArticle);
 // 게시글 삭제
 router.delete('/articles/:id', jwtVerify, articleController.destroyArticle)
-
+// 특정 태그 사용한 글 목록 조회
+router.get('./articles/tags/tagId', (req, res) => {
+    
+})
 module.exports = router
